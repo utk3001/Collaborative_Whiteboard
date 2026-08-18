@@ -69,10 +69,39 @@ export function useSync(roomId) {
     };
   }, [connect]);
 
+  const undoStack = useRef([]);
+  const redoStack = useRef([]);
+
   // Optimistic update + Delta Broadcast
-  const updateShape = useCallback((shapeId, updates) => {
+  const updateShape = useCallback((shapeId, updates, isUndoRedoAction = false, skipUndo = false) => {
     const time = Date.now();
     const delta = { [shapeId]: { data: {}, meta: {} } };
+
+    // Record for undo stack
+    if (!isUndoRedoAction && !skipUndo) {
+      const currentState = crdt.current.state[shapeId]?.data || {};
+      const previousState = {};
+      let hasChanges = false;
+      Object.entries(updates).forEach(([key, value]) => {
+        if (currentState[key] !== value) {
+          previousState[key] = currentState[key] !== undefined ? currentState[key] : null;
+          hasChanges = true;
+        }
+      });
+      
+      if (hasChanges) {
+        const lastAction = undoStack.current[undoStack.current.length - 1];
+        if (lastAction && lastAction.shapeId === shapeId && (Date.now() - lastAction.time < 1000)) {
+          // Coalesce continuous actions (e.g., color picker dragging)
+          lastAction.newState = { ...lastAction.newState, ...updates };
+          lastAction.time = Date.now();
+          // We intentionally DO NOT update lastAction.previousState so we can revert to the true original
+        } else {
+          undoStack.current.push({ shapeId, previousState, newState: updates, time: Date.now() });
+        }
+        redoStack.current = []; // clear redo stack on new action
+      }
+    }
 
     // 1. Optimistic Local Update
     Object.entries(updates).forEach(([key, value]) => {
@@ -94,6 +123,51 @@ export function useSync(roomId) {
     }
   }, [clientId]);
 
+  const pushUndo = useCallback((shapeId, previousState, newState) => {
+    undoStack.current.push({ shapeId, previousState, newState });
+    redoStack.current = [];
+  }, []);
+
+  const undo = useCallback(() => {
+    if (undoStack.current.length === 0) return;
+    const action = undoStack.current.pop();
+    redoStack.current.push(action);
+    
+    // If it was a creation (all previous states were null), undo = delete
+    const isCreation = Object.values(action.previousState).every(v => v === null);
+    if (isCreation) {
+      updateShape(action.shapeId, { _deleted: true }, true);
+    } else {
+      const revert = {};
+      for (const [k, v] of Object.entries(action.previousState)) {
+        if (v !== null) revert[k] = v;
+      }
+      if (Object.keys(revert).length > 0) {
+        updateShape(action.shapeId, revert, true);
+      }
+    }
+  }, [updateShape]);
+
+  const redo = useCallback(() => {
+    if (redoStack.current.length === 0) return;
+    const action = redoStack.current.pop();
+    undoStack.current.push(action);
+    updateShape(action.shapeId, action.newState, true);
+  }, [updateShape]);
+
+  const clearAll = useCallback(() => {
+    const currentShapes = crdt.current.get();
+    Object.keys(currentShapes).forEach(shapeId => {
+      if (!currentShapes[shapeId]._deleted) {
+        updateShape(shapeId, { _deleted: true }, true); // pass true to prevent individual deletes filling stack
+      }
+    });
+    
+    // Clear stacks on Clear All
+    undoStack.current = [];
+    redoStack.current = [];
+  }, [updateShape]);
+
   const updateCursor = useCallback((x, y) => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify({ type: 'cursor', clientId, x, y, timestamp: Date.now() }));
@@ -105,5 +179,5 @@ export function useSync(roomId) {
     updateShape(shapeId, { type, x, y, width, height, color });
   }, [updateShape]);
 
-  return { shapes, cursors, updateShape, updateCursor, addShape, clientId };
+  return { shapes, cursors, updateShape, updateCursor, addShape, clientId, undo, redo, clearAll, undoStack, redoStack, pushUndo };
 }

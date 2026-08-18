@@ -1,2 +1,5 @@
 implementation_plan.md
 INTERVIEW_KNOWLEDGE_BASE.md
+node_modules/
+.env
+.DS_Store
