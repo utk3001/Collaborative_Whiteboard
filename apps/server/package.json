@@ -1,0 +1,14 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "redis": "^4.6.10",
+    "ws": "^8.16.0",
+    "crdt-core": "*"
+  }
+}

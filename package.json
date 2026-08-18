@@ -1,0 +1,8 @@
+{
+  "name": "collaborative-whiteboard",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
