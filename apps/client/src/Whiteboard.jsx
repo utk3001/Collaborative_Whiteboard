@@ -115,7 +115,35 @@ export default function Whiteboard({ roomId }) {
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#1a1a1a', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', zIndex: 10, padding: 20, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        <h1 style={{ fontFamily: 'Inter, sans-serif', color: 'white', margin: 0, fontSize: '28px', fontWeight: 700 }}>Room: {roomId}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <h1 style={{ fontFamily: 'Inter, sans-serif', color: 'white', margin: 0, fontSize: '28px', fontWeight: 700 }}>Room: {roomId}</h1>
+          <div style={{ display: 'flex', gap: '8px', pointerEvents: 'auto' }}>
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                const btn = document.getElementById('copy-btn');
+                if (btn) {
+                  btn.innerText = 'Copied!';
+                  setTimeout(() => btn.innerText = 'Copy Link', 2000);
+                }
+              }}
+              id="copy-btn"
+              style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 600, transition: 'all 0.2s' }}
+              onMouseOver={(e) => e.target.style.background = 'rgba(255,255,255,0.2)'}
+              onMouseOut={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
+            >
+              Copy Link
+            </button>
+            <button 
+              onClick={() => window.location.hash = ''}
+              style={{ background: 'rgba(255,65,54,0.1)', color: '#FF4136', border: '1px solid rgba(255,65,54,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 600, transition: 'all 0.2s' }}
+              onMouseOver={(e) => e.target.style.background = 'rgba(255,65,54,0.2)'}
+              onMouseOut={(e) => e.target.style.background = 'rgba(255,65,54,0.1)'}
+            >
+              Leave Room
+            </button>
+          </div>
+        </div>
         
         <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', pointerEvents: 'auto', background: 'rgba(40, 40, 40, 0.8)', padding: '12px 20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
           
