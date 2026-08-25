@@ -1,0 +1,31 @@
+services:
+  - type: redis
+    name: whiteboard-redis
+    plan: free
+    ipAllowList: []
+
+  - type: web
+    name: whiteboard-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start --workspace=apps/server
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: whiteboard-redis
+          property: connectionString
+
+  - type: web
+    name: whiteboard-frontend
+    env: static
+    plan: free
+    buildCommand: npm install && npm run build --workspace=apps/client
+    staticPublishPath: apps/client/dist
+    envVars:
+      - key: VITE_WS_URL
+        fromService:
+          type: web
+          name: whiteboard-backend
+          property: host

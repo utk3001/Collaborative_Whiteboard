@@ -10,9 +10,10 @@ export function useSync(roomId) {
   const crdt = useRef(new LWWMap(clientId));
 
   const connect = useCallback(() => {
-    // Force port 3001 for local server
-    const host = window.location.hostname === 'localhost' ? 'localhost:3001' : window.location.host;
-    const url = `ws://${host}/?room=${roomId}&clientId=${clientId}`;
+    const wsUrl = import.meta.env.VITE_WS_URL;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = wsUrl ? wsUrl : (window.location.hostname === 'localhost' ? 'localhost:3001' : window.location.host);
+    const url = wsUrl ? `wss://${host}/?room=${roomId}&clientId=${clientId}` : `${protocol}//${host}/?room=${roomId}&clientId=${clientId}`;
     
     ws.current = new WebSocket(url);
 
